@@ -1,0 +1,9 @@
+{
+  "appId": "com.kashmeer.fragrance",
+  "appName": "AuraMist Controller",
+  "webDir": "dist",
+  "server": {
+    "cleartext": true,
+    "androidScheme": "http"
+  }
+}
