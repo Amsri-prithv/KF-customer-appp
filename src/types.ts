@@ -7,6 +7,7 @@ export interface Machine {
   intervalMinutes: string; // e.g. "30m", "1h"
   isMasterLocked: boolean; // Emergency stop state
   status: 'Active' | 'Master Stopped' | 'Offline';
+  nextSpraySec?: number; // remaining seconds until the next scheduled spray
   lastSprayed?: string;
   scentType?: string;
 }

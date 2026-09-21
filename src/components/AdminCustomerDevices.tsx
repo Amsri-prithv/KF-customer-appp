@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Plus, ShieldAlert, CheckCircle2, Wind, Droplet, Clock, Settings, Pencil, Trash2, Wifi } from 'lucide-react';
+import { ArrowLeft, Plus, ShieldAlert, CheckCircle2, Wind, Droplet, Clock, Settings, Pencil, Trash2, Wifi, TimerReset } from 'lucide-react';
 import { CustomerUser, Machine } from '../types';
 
 interface AdminCustomerDevicesProps {
@@ -192,6 +192,16 @@ export const AdminCustomerDevices: React.FC<AdminCustomerDevicesProps> = ({
                           <span className="font-mono font-bold text-slate-200">Every {machine.intervalMinutes}</span>
                         </div>
                       </div>
+                    </div>
+
+                    <div className="mb-4 bg-slate-950/80 border border-slate-800 rounded-2xl p-3 flex items-center justify-between text-xs">
+                      <span className="text-slate-400 flex items-center space-x-1.5">
+                        <TimerReset className="w-4 h-4 text-violet-400" />
+                        <span>Live countdown</span>
+                      </span>
+                      <span className="font-mono font-bold text-violet-400">
+                        {typeof machine.nextSpraySec === 'number' ? `${Math.max(0, Math.ceil(machine.nextSpraySec / 60))} min` : 'Syncing...'}
+                      </span>
                     </div>
 
                     {/* PROMINENT EMERGENCY MASTER STOP BANNER / BUTTON */}

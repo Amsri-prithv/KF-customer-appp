@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Droplet, Clock, Wind, Save, ShieldAlert, Wifi, Terminal, CheckCircle2, Plus, Minus } from 'lucide-react';
+import { X, Droplet, Clock, Wind, Save, ShieldAlert, Wifi, Terminal, CheckCircle2, Plus, Minus, TimerReset } from 'lucide-react';
 import { Machine, AuthRole } from '../types';
 
 interface MachineControlModalProps {
@@ -133,6 +133,16 @@ export const MachineControlModal: React.FC<MachineControlModalProps> = ({
             </button>
           </div>
         )}
+
+        <div className="mb-5 bg-slate-950/80 border border-slate-800 rounded-2xl p-3 flex items-center justify-between">
+          <div className="flex items-center space-x-2 text-slate-300 text-xs">
+            <TimerReset className="w-4 h-4 text-violet-400" />
+            <span>ESP32 Live Countdown</span>
+          </div>
+          <span className="font-mono font-bold text-violet-400 text-sm">
+            {typeof machine.nextSpraySec === 'number' ? `${Math.max(0, Math.ceil(machine.nextSpraySec / 60))} min` : 'Syncing...'}
+          </span>
+        </div>
 
         {/* Configuration Form */}
         <form onSubmit={handleSave} className="space-y-5">

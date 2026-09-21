@@ -96,6 +96,61 @@ export default function App() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  const normalizeHardwareStatus = useCallback((machine: Machine, payload: any): Machine => {
+    const rawIntervalMinutes = typeof payload?.interval === 'number' ? Number(payload.interval) : parseInt(machine.intervalMinutes.replace(/[mh]/g, '')) || 30;
+    const intervalString = rawIntervalMinutes >= 60 && rawIntervalMinutes % 60 === 0
+      ? `${rawIntervalMinutes / 60}h`
+      : `${rawIntervalMinutes}m`;
+
+    const nextSpraySec = typeof payload?.nextSpraySec === 'number'
+      ? payload.nextSpraySec
+      : machine.nextSpraySec;
+
+    const nextStatus: Machine['status'] =
+      payload?.status === 'Master Stopped'
+        ? 'Master Stopped'
+        : payload?.status === 'Active'
+          ? 'Active'
+          : 'Offline';
+
+    return {
+      ...machine,
+      sprayCount: typeof payload?.sprayCount === 'number' ? payload.sprayCount : machine.sprayCount,
+      intervalMinutes: intervalString,
+      isMasterLocked: Boolean(payload?.locked),
+      status: nextStatus,
+      nextSpraySec,
+    };
+  }, []);
+
+  const pollMachineStatus = useCallback(async (machine: Machine) => {
+    if (!machine.ipAddress) return;
+
+    try {
+      const response = await fetch(`http://${machine.ipAddress}/status`, { method: 'GET' });
+      if (!response.ok) {
+        throw new Error(`Status request failed: ${response.status}`);
+      }
+
+      const payload = await response.json();
+      setMachines((prev) =>
+        prev.map((m) => (m.id === machine.id ? normalizeHardwareStatus(m, payload) : m))
+      );
+    } catch (error) {
+      console.warn(`[ESP32 STATUS] Poll failed for ${machine.ipAddress}:`, error);
+      setMachines((prev) =>
+        prev.map((m) =>
+          m.id === machine.id
+            ? {
+                ...m,
+                status: 'Offline',
+              }
+            : m
+        )
+      );
+    }
+  }, [normalizeHardwareStatus]);
+
   // Save changes to storage whenever users/machines update
   useEffect(() => {
     saveStoredUsers(users);
@@ -104,6 +159,24 @@ export default function App() {
   useEffect(() => {
     saveStoredMachines(machines);
   }, [machines]);
+
+  useEffect(() => {
+    if (!machines.length) return;
+
+    let isMounted = true;
+    const refreshAll = async () => {
+      if (!isMounted) return;
+      await Promise.allSettled(machines.map((machine) => pollMachineStatus(machine)));
+    };
+
+    refreshAll();
+    const intervalId = window.setInterval(refreshAll, 5000);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+    };
+  }, [machines, pollMachineStatus]);
 
   // Cross-tab sync listener
   useEffect(() => {

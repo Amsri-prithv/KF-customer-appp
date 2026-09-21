@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldAlert, Droplet, Clock, ChevronRight, Wind, AlertCircle, Building, Phone, Sparkles } from 'lucide-react';
+import { ShieldAlert, Droplet, Clock, ChevronRight, Wind, AlertCircle, Building, Phone, Sparkles, TimerReset } from 'lucide-react';
 import { CustomerUser, Machine } from '../types';
 
 interface CustomerDashboardProps {
@@ -192,6 +192,16 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                       </span>
                       <span className="font-mono font-bold text-teal-400 bg-teal-950/60 px-2 py-0.5 rounded border border-teal-900/60">
                         Every {machine.intervalMinutes}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-400 flex items-center space-x-1.5">
+                        <TimerReset className="w-3.5 h-3.5 text-violet-400" />
+                        <span>Next Spray:</span>
+                      </span>
+                      <span className="font-mono font-bold text-violet-400 bg-violet-950/60 px-2 py-0.5 rounded border border-violet-900/60">
+                        {typeof machine.nextSpraySec === 'number' ? `${Math.max(0, Math.ceil(machine.nextSpraySec / 60))} min` : 'Syncing...'}
                       </span>
                     </div>
                   </div>

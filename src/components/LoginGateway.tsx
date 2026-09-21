@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Shield, User, Key, Building2, Lock, Eye, EyeOff, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
 import { CustomerUser } from '../types';
-import { ADMIN_CREDENTIALS } from '../storage';
 
 interface LoginGatewayProps {
   users: CustomerUser[];
@@ -34,12 +33,6 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
   const handleAdminSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onAdminLogin(adminUsername.trim(), adminPassword.trim());
-  };
-
-  const handleQuickAdmin = () => {
-    setAdminUsername(ADMIN_CREDENTIALS.username);
-    setAdminPassword(ADMIN_CREDENTIALS.password);
-    onAdminLogin(ADMIN_CREDENTIALS.username, ADMIN_CREDENTIALS.password);
   };
 
   return (
@@ -95,7 +88,7 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
 
         {/* CUSTOMER LOGIN FORM */}
         {activeTab === 'customer' && (
-          <form onSubmit={handleCustomerSubmit} className="space-y-4 relative z-10 animate-in fade-in duration-200">
+          <form autoComplete="off" onSubmit={handleCustomerSubmit} className="space-y-4 relative z-10 animate-in fade-in duration-200">
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
                 Customer Identifier (ID)
@@ -159,7 +152,7 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
 
         {/* MASTER ADMIN LOGIN FORM */}
         {activeTab === 'admin' && (
-          <form onSubmit={handleAdminSubmit} className="space-y-4 relative z-10 animate-in fade-in duration-200">
+          <form autoComplete="off" onSubmit={handleAdminSubmit} className="space-y-4 relative z-10 animate-in fade-in duration-200">
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
                 Master Admin Username
@@ -171,6 +164,7 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
                 <input
                   type="text"
                   required
+                  autoComplete="off"
                   value={adminUsername}
                   onChange={(e) => setAdminUsername(e.target.value)}
                   placeholder="Enter admin username"
@@ -190,6 +184,7 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
                 <input
                   type={showAdminPassword ? 'text' : 'password'}
                   required
+                  autoComplete="off"
                   value={adminPassword}
                   onChange={(e) => setAdminPassword(e.target.value)}
                   placeholder="••••••••••••"
@@ -213,22 +208,6 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
               <ArrowRight className="w-4 h-4" />
             </button>
 
-            {/* Quick Demo Master Admin Button */}
-            <div className="pt-4 border-t border-slate-800/80">
-              <button
-                type="button"
-                onClick={handleQuickAdmin}
-                className="w-full p-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-indigo-900/60 hover:border-indigo-500 text-left transition-all flex items-center justify-between"
-              >
-                <div>
-                  <div className="text-xs font-semibold text-indigo-300">Quick Fill Admin Credentials</div>
-                  <div className="text-[11px] text-slate-400">Auto-fill authorized master keys</div>
-                </div>
-                <span className="text-[10px] font-mono px-2 py-1 rounded bg-indigo-950 text-indigo-300 border border-indigo-800">
-                  Instant Auto-Fill
-                </span>
-              </button>
-            </div>
           </form>
         )}
 
