@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { db, ref, set, onValue } from './services/firebase';
 import { Navbar } from './components/Navbar';
 import { LoginGateway } from './components/LoginGateway';
 import { CustomerDashboard } from './components/CustomerDashboard';
@@ -94,6 +95,21 @@ export default function App() {
 
   const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  // Sync Clients from Firebase Realtime Database
+  useEffect(() => {
+    const clientsRef = ref(db, 'clients');
+    const unsubscribe = onValue(clientsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setUsers(Object.values(data));
+      } else {
+        setUsers([]);
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const normalizeHardwareStatus = useCallback((machine: Machine, payload: any): Machine => {
@@ -364,6 +380,7 @@ export default function App() {
       assignedMachines: [],
     };
     setUsers((prev) => [...prev, fullUser]);
+    set(ref(db, `clients/${fullUser.customerId}`), fullUser);
     setIsAddCustomerOpen(false);
     addToast(`Registered client ${fullUser.officeName} (${fullUser.customerId})`, 'success');
   };
@@ -383,6 +400,7 @@ export default function App() {
 
     // Unlink machines or keep them unassigned
     setUsers((prev) => prev.filter((u) => u.customerId !== targetId));
+    set(ref(db, `clients/${targetId}`), null);
     if (selectedAdminCustomerId === targetId) {
       setSelectedAdminCustomerId(null);
     }
