@@ -384,8 +384,22 @@ export default function App() {
     remove(ref(db, `clients/${clientId}`));
   };
 
-  const handleAddMachine = (newMachine: Machine) => {
-    set(ref(db, `machines/${newMachine.id}`), newMachine);
+  const handleAddMachine = (newMachine: Partial<Machine> & { id?: string }) => {
+    const targetClientId = selectedAdminCustomerId || currentCustomerId || currentCustomerUser?.customerId || 'CUST-101';
+
+    const machinePayload: Machine = {
+      ...newMachine,
+      id: newMachine.id || `ESP-${Date.now()}`,
+      clientId: targetClientId,
+      customName: newMachine.customName || 'Fragrance Unit',
+      ipAddress: newMachine.ipAddress || '192.168.1.75',
+      sprayCount: newMachine.sprayCount ?? 2,
+      intervalMinutes: newMachine.intervalMinutes || '30m',
+      isMasterLocked: newMachine.isMasterLocked ?? false,
+      status: newMachine.status || 'Active',
+    };
+
+    set(ref(db, `machines/${machinePayload.id}`), machinePayload);
   };
 
   const handleDeleteMachine = (machineId: string) => {
@@ -435,21 +449,27 @@ export default function App() {
   const handleAddMachineToCustomer = (newMachine: Machine) => {
     if (!selectedAdminCustomerId) return;
 
+    const machineWithClient: Machine = {
+      ...newMachine,
+      clientId: selectedAdminCustomerId,
+      id: newMachine.id || `ESP-${Date.now()}`,
+    };
+
     // Add to machines list
-    setMachines((prev) => [...prev, newMachine]);
-    handleAddMachine(newMachine);
+    setMachines((prev) => [...prev, machineWithClient]);
+    handleAddMachine(machineWithClient);
 
     // Link to current client
     setUsers((prev) =>
       prev.map((u) =>
         u.customerId === selectedAdminCustomerId
-          ? { ...u, assignedMachines: [...(u.assignedMachines || []), newMachine.id] }
+          ? { ...u, assignedMachines: [...(u.assignedMachines || []), machineWithClient.id] }
           : u
       )
     );
 
     setIsAddMachineOpen(false);
-    addToast(`Linked ${newMachine.customName} (${newMachine.id}) to client`, 'success');
+    addToast(`Linked ${machineWithClient.customName} (${machineWithClient.id}) to client`, 'success');
   };
 
   const handleSaveMachineRename = (newName: string, newScent: string) => {

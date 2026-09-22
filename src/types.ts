@@ -1,5 +1,6 @@
 export interface Machine {
   id: string; // e.g. "ESP-KASH-01"
+  clientId?: string; // e.g. "CUST-101"
   customName: string; // e.g. "Executive Boardroom Scent"
   ipAddress: string; // e.g. "192.168.1.51"
   sprayCount: number; // e.g. 1, 2, 3 (times)
