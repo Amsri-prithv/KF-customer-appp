@@ -10,7 +10,8 @@ interface AdminCustomerDevicesProps {
   onOpenRenameMachine: (machine: Machine) => void;
   onOpenDeleteMachine: (machine: Machine) => void;
   onOpenMachineControl: (machine: Machine) => void;
-  onToggleMasterLock: (machineId: string, newLockState: boolean) => void;
+  onEmergencyStop: (machineId: string) => void;
+  onReleaseMasterStop: (machineId: string) => void;
 }
 
 export const AdminCustomerDevices: React.FC<AdminCustomerDevicesProps> = ({
@@ -21,7 +22,8 @@ export const AdminCustomerDevices: React.FC<AdminCustomerDevicesProps> = ({
   onOpenRenameMachine,
   onOpenDeleteMachine,
   onOpenMachineControl,
-  onToggleMasterLock,
+  onEmergencyStop,
+  onReleaseMasterStop,
 }) => {
   const normalizeClientId = (value?: string | null) => (value ?? '').toString().trim().toUpperCase();
 
@@ -226,7 +228,7 @@ export const AdminCustomerDevices: React.FC<AdminCustomerDevicesProps> = ({
 
                           <button
                             type="button"
-                            onClick={() => onToggleMasterLock(machine.id, false)}
+                            onClick={() => onReleaseMasterStop(machine.id)}
                             className="py-2 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-emerald-950 shrink-0 transition-all active:scale-[0.98]"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" />
@@ -245,7 +247,7 @@ export const AdminCustomerDevices: React.FC<AdminCustomerDevicesProps> = ({
 
                           <button
                             type="button"
-                            onClick={() => onToggleMasterLock(machine.id, true)}
+                            onClick={() => onEmergencyStop(machine.id)}
                             className="py-2 px-3.5 rounded-xl bg-rose-600/90 hover:bg-rose-500 text-white font-semibold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-rose-950 shrink-0 transition-all active:scale-[0.98]"
                           >
                             <ShieldAlert className="w-3.5 h-3.5" />

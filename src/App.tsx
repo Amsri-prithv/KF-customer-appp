@@ -117,7 +117,20 @@ export default function App() {
     return () => unsub();
   }, []);
 
+  const isMasterLockActive = useCallback((machine?: Machine | null) => {
+    if (!machine) return false;
+    return Boolean(machine.isMasterLocked || machine.status === 'Master Stopped');
+  }, []);
+
   const normalizeHardwareStatus = useCallback((machine: Machine, payload: any): Machine => {
+    if (isMasterLockActive(machine)) {
+      return {
+        ...machine,
+        isMasterLocked: true,
+        status: 'Master Stopped',
+      };
+    }
+
     const rawIntervalMinutes = typeof payload?.interval === 'number' ? Number(payload.interval) : parseInt(machine.intervalMinutes.replace(/[mh]/g, '')) || 30;
     const intervalString = rawIntervalMinutes >= 60 && rawIntervalMinutes % 60 === 0
       ? `${rawIntervalMinutes / 60}h`
@@ -127,8 +140,9 @@ export default function App() {
       ? payload.nextSpraySec
       : machine.nextSpraySec;
 
+    const isHardwareLocked = Boolean(payload?.locked || payload?.status === 'Master Stopped');
     const nextStatus: Machine['status'] =
-      payload?.status === 'Master Stopped'
+      payload?.status === 'Master Stopped' || isHardwareLocked
         ? 'Master Stopped'
         : payload?.status === 'Active'
           ? 'Active'
@@ -138,14 +152,14 @@ export default function App() {
       ...machine,
       sprayCount: typeof payload?.sprayCount === 'number' ? payload.sprayCount : machine.sprayCount,
       intervalMinutes: intervalString,
-      isMasterLocked: Boolean(payload?.locked),
+      isMasterLocked: isHardwareLocked,
       status: nextStatus,
       nextSpraySec,
     };
-  }, []);
+  }, [isMasterLockActive]);
 
   const pollMachineStatus = useCallback(async (machine: Machine) => {
-    if (!machine.ipAddress) return;
+    if (!machine.ipAddress || isMasterLockActive(machine)) return;
 
     try {
       const response = await fetch(`http://${machine.ipAddress}/status`, { method: 'GET' });
@@ -170,7 +184,7 @@ export default function App() {
         )
       );
     }
-  }, [normalizeHardwareStatus]);
+  }, [isMasterLockActive, normalizeHardwareStatus]);
 
   // Save changes to storage whenever users/machines update
   useEffect(() => {
@@ -324,7 +338,7 @@ export default function App() {
     }, Math.max(2200, safeCount * 1200 + 400));
   };
 
-  const handleSaveSchedule = (machineId: string, sprayCount: number, interval: string) => {
+  const handleSaveSchedule = async (machineId: string, sprayCount: number, interval: string) => {
     const target = machines.find((m) => m.id === machineId);
     if (!target) return;
 
@@ -349,6 +363,16 @@ export default function App() {
       )
     );
 
+    try {
+      await update(ref(db, `machines/${machineId}`), {
+        sprayCount: safeCount,
+        intervalMinutes: interval,
+        updatedAt: Date.now(),
+      });
+    } catch (error) {
+      console.error('Failed to update machine schedule in Firebase:', error);
+    }
+
     // Dispatch REST signal to ESP32: GET http://<ip>/configure?duration=...&interval=...
     let minutes = parseInt(interval.replace(/[mh]/g, '')) || 30;
     if (interval.endsWith('h')) {
@@ -363,20 +387,17 @@ export default function App() {
     setSelectedControlMachine(null);
   };
 
-  const handleToggleMasterLock = async (machineId: string, currentLockState: boolean) => {
+  const handleEmergencyStop = async (machineId: string) => {
     const target = machines.find((m) => m.id === machineId);
     if (!target) return;
-
-    const newLockState = !currentLockState;
-    const newStatus = newLockState ? 'Master Stopped' : 'Active';
 
     setMachines((prev) =>
       prev.map((m) =>
         m.id === machineId
           ? {
               ...m,
-              isMasterLocked: newLockState,
-              status: newStatus,
+              isMasterLocked: true,
+              status: 'Master Stopped',
             }
           : m
       )
@@ -384,23 +405,72 @@ export default function App() {
 
     try {
       await update(ref(db, `machines/${machineId}`), {
-        isMasterLocked: newLockState,
-        status: newStatus,
+        isMasterLocked: true,
+        status: 'Master Stopped',
       });
-    } catch (error) {
-      console.error('Failed to update master lock status in Firebase:', error);
+    } catch (err) {
+      console.error('Firebase lock failed:', err);
     }
 
-    // Dispatch hardware emergency command: http://<ip>/master-lock?state=1|0
-    const endpoint = `http://${target.ipAddress}/master-lock?state=${newLockState ? 1 : 0}`;
-    fetch(endpoint, { method: 'GET' }).catch((err) => {
-      console.log(`[ESP32 REST] Master-lock dispatched to ${endpoint}`, err);
-    });
+    try {
+      if (target.ipAddress) {
+        await fetch(`http://${target.ipAddress}/master-lock`, {
+          method: 'POST',
+          signal: AbortSignal.timeout(1500),
+        });
+      }
+    } catch (hwErr) {
+      console.warn('ESP32 offline or unreachable:', hwErr);
+    }
 
-    const msg = newLockState
-      ? `🚨 EMERGENCY MASTER STOP ENGAGED for ${target.customName}`
-      : `✅ Master Stop Released for ${target.customName}`;
-    addToast(msg, newLockState ? 'error' : 'success', 'Hardware Security Signal');
+    addToast('Emergency Master Stop Engaged', 'error', 'Hardware Security Signal');
+  };
+
+  const handleReleaseMasterStop = async (machineId: string) => {
+    const target = machines.find((m) => m.id === machineId);
+    if (!target) return;
+
+    setMachines((prev) =>
+      prev.map((m) =>
+        m.id === machineId
+          ? {
+              ...m,
+              isMasterLocked: false,
+              status: 'Active',
+            }
+          : m
+      )
+    );
+
+    try {
+      await update(ref(db, `machines/${machineId}`), {
+        isMasterLocked: false,
+        status: 'Active',
+      });
+    } catch (err) {
+      console.error('Firebase release failed:', err);
+    }
+
+    try {
+      if (target.ipAddress) {
+        await fetch(`http://${target.ipAddress}/master-release`, {
+          method: 'POST',
+          signal: AbortSignal.timeout(1500),
+        });
+      }
+    } catch (hwErr) {
+      console.warn('ESP32 offline or unreachable:', hwErr);
+    }
+
+    addToast(`Master Stop Released for ${target.customName || 'Room'}`, 'success', 'Hardware Security Signal');
+  };
+
+  const handleToggleMasterLock = async (machineId: string, currentLockState: boolean) => {
+    if (currentLockState) {
+      await handleReleaseMasterStop(machineId);
+      return;
+    }
+    await handleEmergencyStop(machineId);
   };
 
   const handleRegisterClient = (newClient: CustomerUser) => {
@@ -590,7 +660,8 @@ export default function App() {
                 onOpenRenameMachine={(machine) => setRenamingMachine(machine)}
                 onOpenDeleteMachine={(machine) => setDeletingMachine(machine)}
                 onOpenMachineControl={(machine) => setSelectedControlMachine(machine)}
-                onToggleMasterLock={handleToggleMasterLock}
+                onEmergencyStop={handleEmergencyStop}
+                onReleaseMasterStop={handleReleaseMasterStop}
               />
             ) : (
               <AdminCustomerDirectory
@@ -615,7 +686,8 @@ export default function App() {
           onClose={() => setSelectedControlMachine(null)}
           onSaveSchedule={handleSaveSchedule}
           onTriggerSpray={handleTriggerSpray}
-          onToggleMasterLock={currentRole === 'admin' ? handleToggleMasterLock : undefined}
+          onEmergencyStop={currentRole === 'admin' ? handleEmergencyStop : undefined}
+          onReleaseMasterStop={currentRole === 'admin' ? handleReleaseMasterStop : undefined}
         />
       )}
 

@@ -8,7 +8,8 @@ interface MachineControlModalProps {
   onClose: () => void;
   onSaveSchedule: (machineId: string, sprayCount: number, interval: string) => void;
   onTriggerSpray: (machine: Machine, sprayCount: number) => void;
-  onToggleMasterLock?: (machineId: string, newLockState: boolean) => void;
+  onEmergencyStop?: (machineId: string) => void;
+  onReleaseMasterStop?: (machineId: string) => void;
 }
 
 export const MachineControlModal: React.FC<MachineControlModalProps> = ({
@@ -17,7 +18,8 @@ export const MachineControlModal: React.FC<MachineControlModalProps> = ({
   onClose,
   onSaveSchedule,
   onTriggerSpray,
-  onToggleMasterLock,
+  onEmergencyStop,
+  onReleaseMasterStop,
 }) => {
   if (!machine) return null;
 
@@ -103,10 +105,10 @@ export const MachineControlModal: React.FC<MachineControlModalProps> = ({
               This unit has been safely suspended by Master Admin oversight. Fluid pumps and timer relays are shut down.
             </p>
 
-            {isAdmin && onToggleMasterLock && (
+            {isAdmin && onReleaseMasterStop && (
               <button
                 type="button"
-                onClick={() => onToggleMasterLock(machine.id, false)}
+                onClick={() => onReleaseMasterStop(machine.id)}
                 className="mt-3 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center space-x-1.5 shadow"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
@@ -117,7 +119,7 @@ export const MachineControlModal: React.FC<MachineControlModalProps> = ({
         )}
 
         {/* Admin Emergency Toggle strip */}
-        {isAdmin && !isLocked && onToggleMasterLock && (
+        {isAdmin && !isLocked && onEmergencyStop && (
           <div className="mb-5 bg-slate-950 border border-slate-800 rounded-2xl p-3 flex items-center justify-between">
             <div className="text-xs">
               <span className="font-semibold text-slate-300 block">Master Safety Kill-Switch</span>
@@ -125,7 +127,7 @@ export const MachineControlModal: React.FC<MachineControlModalProps> = ({
             </div>
             <button
               type="button"
-              onClick={() => onToggleMasterLock(machine.id, true)}
+              onClick={() => onEmergencyStop(machine.id)}
               className="py-1.5 px-3 rounded-xl bg-rose-600/90 hover:bg-rose-500 text-white font-semibold text-xs flex items-center space-x-1 shadow-sm"
             >
               <ShieldAlert className="w-3.5 h-3.5" />
