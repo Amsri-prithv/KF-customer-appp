@@ -15,8 +15,14 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
   onOpenMachineControl,
   onQuickSpray,
 }) => {
-  const assignedIds = user.assignedMachines || [];
-  const clientMachines = machines.filter((m) => assignedIds.includes(m.id));
+  const isMatchingMachine = (machine: Machine, targetId?: string) => {
+    if (!targetId || !machine) return false;
+    const mClientId = (machine.clientId || (machine as any).client_id || '').trim().toUpperCase();
+    const cId = targetId.trim().toUpperCase();
+    return mClientId === cId;
+  };
+
+  const clientMachines = machines.filter((m) => isMatchingMachine(m, user.customerId));
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">

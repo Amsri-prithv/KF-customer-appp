@@ -45,6 +45,14 @@ export const AdminCustomerDirectory: React.FC<AdminCustomerDirectoryProps> = ({
   const totalMachinesCount = machines.length;
   const lockedMachinesCount = machines.filter((m) => m.isMasterLocked).length;
   const activeMachinesCount = totalMachinesCount - lockedMachinesCount;
+  const getAssignedCount = (clientId: string) => {
+    return machines.filter((m) => {
+      if (!clientId || !m) return false;
+      const mClientId = (m.clientId || (m as any).client_id || '').trim().toUpperCase();
+      const cId = clientId.trim().toUpperCase();
+      return mClientId === cId;
+    }).length;
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -147,9 +155,14 @@ export const AdminCustomerDirectory: React.FC<AdminCustomerDirectoryProps> = ({
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-5 sm:gap-6">
           {filteredUsers.map((user) => {
-            const assignedIds = user.assignedMachines || [];
-            const userMachines = machines.filter((m) => assignedIds.includes(m.id));
+            const userMachines = machines.filter((m) => {
+              if (!user.customerId || !m) return false;
+              const mClientId = (m.clientId || (m as any).client_id || '').trim().toUpperCase();
+              const cId = user.customerId.trim().toUpperCase();
+              return mClientId === cId;
+            });
             const lockedCount = userMachines.filter((m) => m.isMasterLocked).length;
+            const assignedCount = getAssignedCount(user.customerId);
             const isRevealed = !!revealedPasswords[user.customerId];
 
             return (

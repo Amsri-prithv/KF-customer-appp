@@ -238,6 +238,16 @@ export default function App() {
   // Selected customer for Admin Screen A2
   const selectedAdminCustomer = users.find((u) => u.customerId === selectedAdminCustomerId) || null;
 
+  const isMatchingMachine = (machine: Machine, targetId?: string) => {
+    if (!targetId || !machine) return false;
+    const mClientId = (machine.clientId || (machine as any).client_id || '').trim().toUpperCase();
+    const cId = targetId.trim().toUpperCase();
+    return mClientId === cId;
+  };
+
+  const currentTargetId = selectedAdminCustomer?.customerId || currentCustomerUser?.customerId || currentCustomerId || selectedAdminCustomerId || 'CUST-101';
+  const clientMachines = machines.filter((m) => isMatchingMachine(m, currentTargetId));
+
   // ==========================================
   // AUTHENTICATION HANDLERS
   // ==========================================
