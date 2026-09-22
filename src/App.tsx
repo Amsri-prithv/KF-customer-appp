@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { db, ref, set, onValue, remove } from './services/firebase';
+import { db, ref, set, onValue, remove, update } from './services/firebase';
 import { Navbar } from './components/Navbar';
 import { LoginGateway } from './components/LoginGateway';
 import { CustomerDashboard } from './components/CustomerDashboard';
@@ -363,9 +363,12 @@ export default function App() {
     setSelectedControlMachine(null);
   };
 
-  const handleToggleMasterLock = (machineId: string, newLockState: boolean) => {
+  const handleToggleMasterLock = async (machineId: string, currentLockState: boolean) => {
     const target = machines.find((m) => m.id === machineId);
     if (!target) return;
+
+    const newLockState = !currentLockState;
+    const newStatus = newLockState ? 'Master Stopped' : 'Active';
 
     setMachines((prev) =>
       prev.map((m) =>
@@ -373,11 +376,20 @@ export default function App() {
           ? {
               ...m,
               isMasterLocked: newLockState,
-              status: newLockState ? 'Master Stopped' : 'Active',
+              status: newStatus,
             }
           : m
       )
     );
+
+    try {
+      await update(ref(db, `machines/${machineId}`), {
+        isMasterLocked: newLockState,
+        status: newStatus,
+      });
+    } catch (error) {
+      console.error('Failed to update master lock status in Firebase:', error);
+    }
 
     // Dispatch hardware emergency command: http://<ip>/master-lock?state=1|0
     const endpoint = `http://${target.ipAddress}/master-lock?state=${newLockState ? 1 : 0}`;
