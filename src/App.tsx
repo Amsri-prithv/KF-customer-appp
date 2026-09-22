@@ -238,15 +238,20 @@ export default function App() {
   // Selected customer for Admin Screen A2
   const selectedAdminCustomer = users.find((u) => u.customerId === selectedAdminCustomerId) || null;
 
-  const isMatchingMachine = (machine: Machine, targetId?: string) => {
+  const normalizeClientId = (value?: string | null) => (value ?? '').toString().trim().toUpperCase();
+
+  const isMatchingMachine = (machine: Machine, targetId?: string | null) => {
     if (!targetId || !machine) return false;
-    const mClientId = (machine.clientId || (machine as any).client_id || '').trim().toUpperCase();
-    const cId = targetId.trim().toUpperCase();
+    const mClientId = normalizeClientId(machine.clientId || (machine as any).client_id || '');
+    const cId = normalizeClientId(targetId);
     return mClientId === cId;
   };
 
-  const currentTargetId = selectedAdminCustomer?.customerId || currentCustomerUser?.customerId || currentCustomerId || selectedAdminCustomerId || 'CUST-101';
+  const currentTargetId = normalizeClientId(
+    selectedAdminCustomerId || selectedAdminCustomer?.customerId || currentCustomerId || currentCustomerUser?.customerId || 'CUST-101'
+  );
   const clientMachines = machines.filter((m) => isMatchingMachine(m, currentTargetId));
+  const adminAssignedMachines = machines.filter((m) => isMatchingMachine(m, currentTargetId));
 
   // ==========================================
   // AUTHENTICATION HANDLERS
@@ -567,7 +572,7 @@ export default function App() {
             {selectedAdminCustomer ? (
               <AdminCustomerDevices
                 user={selectedAdminCustomer}
-                machines={machines}
+                machines={adminAssignedMachines}
                 onBack={() => setSelectedAdminCustomerId(null)}
                 onOpenAddMachine={() => setIsAddMachineOpen(true)}
                 onOpenRenameMachine={(machine) => setRenamingMachine(machine)}

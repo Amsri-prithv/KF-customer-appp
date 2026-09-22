@@ -267,7 +267,9 @@ export const AdminCustomerDirectory: React.FC<AdminCustomerDirectoryProps> = ({
 
                   <button
                     type="button"
-                    onClick={() => onSelectCustomer(user.customerId)}
+                    onClick={() => {
+                      onSelectCustomer(user.customerId);
+                    }}
                     className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-md shadow-indigo-950 transition-all active:scale-[0.98]"
                   >
                     <span>Manage Devices</span>

@@ -23,8 +23,16 @@ export const AdminCustomerDevices: React.FC<AdminCustomerDevicesProps> = ({
   onOpenMachineControl,
   onToggleMasterLock,
 }) => {
-  const assignedIds = user.assignedMachines || [];
-  const clientMachines = machines.filter((m) => assignedIds.includes(m.id));
+  const normalizeClientId = (value?: string | null) => (value ?? '').toString().trim().toUpperCase();
+
+  const isMatchingMachine = (machine: Machine, targetId?: string | null) => {
+    if (!targetId || !machine) return false;
+    const mClientId = normalizeClientId(machine.clientId || (machine as any).client_id || '');
+    const cId = normalizeClientId(targetId);
+    return mClientId === cId;
+  };
+
+  const clientMachines = machines.filter((m) => isMatchingMachine(m, user.customerId));
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
